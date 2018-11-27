@@ -1,20 +1,25 @@
 /*
   ATTiny84
-  LED
-  ADD 0x0E
+  US
+  WS
+  ADD 0x0A
 */
 
 #include <TinyWireS.h>
-
+#include <HCSR04.h>
 
 
 // Define endereço do slave
-const uint8_t SLAVE_ADDRESS = 0x0E;
-volatile char comand;
+const uint8_t SLAVE_ADDRESS = 0x0A;
+volatile uint8_t comand;
 volatile uint8_t c = 0;
-int ledPinY = A0;//13
-int ledPinG = A1;//12
-int ledPinR = A2;//11
+int buttonPin = 10;
+
+// confirmar estes pinos
+UltraSonicDistanceSensor distanceSensor(8, 9);
+
+int range = 0;
+int buttonState = 0;   
 
 // Answer a read request from the master...
 void requestEvent() {
@@ -26,39 +31,39 @@ void requestEvent() {
 // Answer a write request from the master...
 void receiveEvent(uint8_t bytes) {
 
+  range = distanceSensor.measureDistanceCm();
+  
   comand = TinyWireS.receive();
 
   switch (comand) {
-    case 'G':
-      digitalWrite(ledPinG, HIGH);
-
+    case 0x33:
+      if (range < 5) {
+        c = 0X01; // got piece
+      } else if (range > 10) {
+        c = 0X01; // no piece
+      }
       break;
 
-    case 'Y':
-      digitalWrite(ledPinY, HIGH);
+    case 0x66:
+     if (buttonState == HIGH) {     
+    c = 0X03; // A piece
+  } 
+  else {
+    c = 0X04;// B piece
+  }   break;
 
-    case 'R':
-      digitalWrite(ledPinR, HIGH);
-
-    case 'S':
-      digitalWrite(ledPinG, LOW);
-      digitalWrite(ledPinY, LOW);
-      digitalWrite(ledPin, LOW);
-      break;
-    default:
-      c = 0;
-      //TinyWireS.send(c);
-      break;
+    default: c = 0x00; break;
   }
 
-
+  tws_delay(100);
 }
 
 void setup() {
-  pinMode(ledPinY, OUTPUT);
-  pinMode(ledPinG, OUTPUT);
-  pinMode(ledPinR, OUTPUT);
 
+  /*pinMode(8, OUTPUT);
+    pinMode(9, OUTPUT);
+  */
+  pinMode(10, INPUT);
   TinyWireS.begin(SLAVE_ADDRESS);
   TinyWireS.onRequest(requestEvent);
   TinyWireS.onReceive(receiveEvent);

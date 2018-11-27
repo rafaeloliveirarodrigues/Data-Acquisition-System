@@ -1,25 +1,19 @@
 /*
   ATTiny84
-  US
-  WS
-  ADD 0x0A
+  HS
+  ADD 0x0D
 */
 
 #include <TinyWireS.h>
-#include <HCSR04.h>
 
 
 // Define endereço do slave
-const uint8_t SLAVE_ADDRESS = 0x0A;
+const uint8_t SLAVE_ADDRESS = 0x0D;
 volatile uint8_t comand;
 volatile uint8_t c = 0;
-int buttonPin = 10;
-
-// confirmar estes pinos
-UltraSonicDistanceSensor distanceSensor(8, 9);
-
-int range = 0;
-int buttonState = 0;   
+volatile uint8_t contador = 0;
+int state=0;
+const int hallPin = 7;
 
 // Answer a read request from the master...
 void requestEvent() {
@@ -31,31 +25,12 @@ void requestEvent() {
 // Answer a write request from the master...
 void receiveEvent(uint8_t bytes) {
 
-  range = distanceSensor.measureDistanceCm();
-  
+
   comand = TinyWireS.receive();
+  if (comand == 0X33)
+    c = digitalRead(hallPin);
 
-  switch (comand) {
-    case 0x33:
-      if (range < 5) {
-        c = 0X01; // got piece
-      } else if (range > 10) {
-        c = 0X01; // no piece
-      }
-      break;
 
-    case 0x66:
-     if (buttonState == HIGH) {     
-    c = 0X03; // A piece
-  } 
-  else {
-    c = 0X04;// B piece
-  }   break;
-
-    default: c = 0x00; break;
-  }
-
-  tws_delay(100);
 }
 
 void setup() {
@@ -63,7 +38,8 @@ void setup() {
   /*pinMode(8, OUTPUT);
     pinMode(9, OUTPUT);
   */
-  pinMode(10, INPUT);
+  pinMode(hallPin, INPUT);
+ // attachInterrupt(0, pin_ISR, FALLING);
   TinyWireS.begin(SLAVE_ADDRESS);
   TinyWireS.onRequest(requestEvent);
   TinyWireS.onReceive(receiveEvent);

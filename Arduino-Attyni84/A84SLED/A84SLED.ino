@@ -1,17 +1,20 @@
 /*
   ATTiny84
-  Buzz
-  ADD 0x0F
+  LED
+  ADD 0x0E
 */
 
 #include <TinyWireS.h>
 
 
+
 // Define endereço do slave
-const uint8_t SLAVE_ADDRESS = 0x0F;
-volatile uint8_t comand;
+const uint8_t SLAVE_ADDRESS = 0x0E;
+volatile char comand;
 volatile uint8_t c = 0;
-const int Speaker = 7;
+int ledPinY = A0;//13
+int ledPinG = A1;//12
+int ledPinR = A2;//11
 
 // Answer a read request from the master...
 void requestEvent() {
@@ -19,37 +22,43 @@ void requestEvent() {
   TinyWireS.send(c);
   c = 0;
 }
-void playBeep(void)
-{
-  for (int i = 0; i < 500; i++)
-  {
-    digitalWrite(Speaker, HIGH);
-    delay(1);
-    digitalWrite(Speaker, LOW);
-    delay(1);
-  }
-}
+
 // Answer a write request from the master...
 void receiveEvent(uint8_t bytes) {
 
-
   comand = TinyWireS.receive();
-  if (comand == 'O')
-    playBeep();
-  else if (comand == 'S')
-    digitalWrite(Speaker, LOW);
-    
+
+  switch (comand) {
+    case 'G':
+      digitalWrite(ledPinG, HIGH);
+
+      break;
+
+    case 'Y':
+      digitalWrite(ledPinY, HIGH);
+
+    case 'R':
+      digitalWrite(ledPinR, HIGH);
+
+    case 'S':
+      digitalWrite(ledPinG, LOW);
+      digitalWrite(ledPinY, LOW);
+      digitalWrite(ledPin, LOW);
+      break;
+    default:
+      c = 0;
+      //TinyWireS.send(c);
+      break;
+  }
 
 
 }
 
 void setup() {
+  pinMode(ledPinY, OUTPUT);
+  pinMode(ledPinG, OUTPUT);
+  pinMode(ledPinR, OUTPUT);
 
-  /*pinMode(8, OUTPUT);
-    pinMode(9, OUTPUT);
-  */
-  pinMode(Speaker, OUTPUT);
-  // attachInterrupt(0, pin_ISR, FALLING);
   TinyWireS.begin(SLAVE_ADDRESS);
   TinyWireS.onRequest(requestEvent);
   TinyWireS.onReceive(receiveEvent);
